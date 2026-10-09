@@ -2,156 +2,125 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AAX VOCHA SCAN - ONLINE</title>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<title>AAX VOCHA - FAST SCAN</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#000;color:#fff;font-family:Arial;padding:12px}
-h1{text-align:center;color:#ffaa00;letter-spacing:3px}
-.box{background:#111;border:1px solid #222;border-radius:14px;padding:14px;margin:12px 0}
-.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;color:#fff;margin:6px 0;font-size:16px}
-.btn-yellow{background:#ffaa00;color:#000}
-.btn-green{background:#00d166}
-.btn-blue{background:#00aaff}
-input{width:100%;padding:14px;border-radius:10px;border:none;background:#222;color:#fff;margin:6px 0;text-align:center;font-size:20px;letter-spacing:3px}
-.stat{display:flex;justify-content:space-between;padding:12px;background:#1a1a1a;border-radius:8px;margin:6px 0}
-#reader{width:100%;border-radius:12px;overflow:hidden}
-.ok{color:#00d166}.bad{color:#ff4444}
-.vodacom{border-left:4px solid #e60000}.tigo{border-left:4px solid #0033a0}.airtel{border-left:4px solid #ff0000}
-.copy-notif{background:#00d166;color:#000;padding:8px;border-radius:6px;text-align:center;font-weight:bold;margin-top:8px;display:none}
+h1{text-align:center;color:#ffaa00}
+.box{background:#111;border-radius:14px;padding:12px;margin:10px 0}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;margin:5px 0}
+.btn-y{background:#ffaa00;color:#000}.btn-g{background:#00d166;color:#fff}.btn-b{background:#00aaff;color:#fff}
+video{width:100%;border-radius:12px;height:38vh;object-fit:cover;background:#000;border:2px solid #ffaa00}
+input{width:100%;padding:14px;border-radius:10px;border:none;background:#222;color:#fff;text-align:center;font-size:22px;letter-spacing:4px}
+.stat{display:flex;justify-content:space-between;padding:10px;background:#1a1a1a;border-radius:8px;margin:5px 0}
+.copy{background:#00d166;color:#000;padding:8px;border-radius:6px;text-align:center;font-weight:bold;display:none;margin-top:6px}
 </style>
 </head>
 <body>
-<h1>AAX VOCHA SCAN</h1>
-<p style="text-align:center;color:#888;font-size:12px">ONLINE MODE - Inacopy moja kwa moja</p>
+<h1>AAX VOCHA FAST</h1>
 
 <div class="box">
-<h3 style="margin:0">1. SCAN KWA CAMERA</h3>
-<div id="reader"></div>
-<button class="btn btn-yellow" onclick="startScan()">WASHA CAMERA SCAN VOCHA</button>
-<p id="scanRes" style="text-align:center;font-size:18px">Hakuna vocha bado</p>
+<video id="video" autoplay playsinline muted></video>
+<canvas id="canvas" style="display:none"></canvas>
+<button class="btn btn-y" onclick="fastScan()">📸 SCAN HARAKA (1 sec)</button>
+<p id="scanInfo" style="text-align:center">Elekeza namba katikati</p>
 </div>
 
 <div class="box">
-<h3 style="margin:0">2. SCAN PICHA YA VOCHA</h3>
-<input type="file" id="img" accept="image/*" onchange="scanVochaImage(this)" style="display:none">
-<button class="btn btn-blue" onclick="document.getElementById('img').click()">CHAGUA PICHA YA VOCHA</button>
-<div id="ocrRes" style="color:#888;font-size:13px;text-align:center">Inasubiri picha</div>
+<input type="file" id="img" accept="image/*" onchange="scanImage(this)" style="display:none">
+<button class="btn btn-b" onclick="document.getElementById('img').click()">🖼️ CHAGUA PICHA</button>
+<div id="imgInfo" style="text-align:center;color:#888;font-size:13px"></div>
 </div>
 
 <div class="box">
-<h3 style="margin:0">3. NAMBA YA VOCHA</h3>
-<input id="vochaNum" placeholder="INGIZA NAMBA YA VOCHA" maxlength="16">
-<div id="copyNotif" class="copy-notif">✅ IMEKOPIWA! Nenda PASTE</div>
-<div style="display:flex;gap:8px">
-<button class="btn btn-green" style="flex:1" onclick="checkVocha()">THIBITISHA & COPY</button>
-<button class="btn" style="flex:1;background:#222" onclick="clearInput()">FUTA</button>
+<input id="vochaNum" placeholder="Namba hapa" maxlength="16">
+<div id="copyBox" class="copy"></div>
+<div style="display:flex;gap:6px">
+<button class="btn btn-g" style="flex:1" onclick="checkAndCopy()">COPY & THIBITISHA</button>
+<button class="btn" style="flex:1;background:#333;color:#fff" onclick="vochaNum.value=''">FUTA</button>
 </div>
 <div id="result"></div>
 </div>
 
 <div class="box">
-<h3 style="margin:0">HISTORY</h3>
 <div id="history">Hakuna</div>
-<button class="btn" style="background:#222" onclick="clearH()">Futa History</button>
 </div>
 
 <script>
-let historyData=JSON.parse(localStorage.getItem('aax_vocha')||'[]');
-let html5Qr=null;
+let hist=JSON.parse(localStorage.getItem('aax_vocha')||'[]');
+const video=document.getElementById('video');
+const canvas=document.getElementById('canvas');
+navigator.mediaDevices.getUserMedia({video:{facingMode:"environment", width:{ideal:640}, height:{ideal:480}}}).then(s=>video.srcObject=s).catch(()=>{document.getElementById('scanInfo').innerText='Ruhusu Camera'});
 
-function showCopy(msg){
- let n=document.getElementById('copyNotif');
- n.innerText=`✅ ${msg} IMEKOPIWA! Nenda PASTE`;
- n.style.display='block';
- setTimeout(()=>n.style.display='none',3000);
+function showCopy(n){
+ let b=document.getElementById('copyBox');
+ b.innerText=`✅ ${n} IMEKOPIWA - Nenda PASTE`;
+ b.style.display='block';
+ navigator.clipboard.writeText(n);
+ if(navigator.vibrate) navigator.vibrate(100);
+ setTimeout(()=>b.style.display='none',3000);
 }
 
-function startScan(){
- document.getElementById('scanRes').innerText='Inatafuta...';
- html5Qr = new Html5Qrcode("reader");
- html5Qr.start({facingMode:"environment"}, {fps:15, qrbox:{width:280,height:100}},
-  (decoded)=>{
-    let num = decoded.replace(/\D/g,'');
-    if(num.length>=10){
-      document.getElementById('vochaNum').value=num;
-      navigator.clipboard.writeText(num);
-      showCopy(num);
-      document.getElementById('scanRes').innerHTML=`<b class="ok">✓ ${num} - IMEKOPIWA</b>`;
-      if(navigator.vibrate) navigator.vibrate(200);
-      checkVocha();
-      html5Qr.stop();
-    }
-  },()=>{});
-}
+// SCAN YA HARAKA - SEKUNDE 1 TU
+async function fastScan(){
+ document.getElementById('scanInfo').innerText='⏳ Inasoma...';
+ canvas.width=video.videoWidth;
+ canvas.height=video.videoHeight;
+ let ctx=canvas.getContext('2d');
+ // Kata katikati tu - haraka zaidi
+ let w=canvas.width*0.9, h=canvas.height*0.25;
+ let x=canvas.width*0.05, y=canvas.height*0.35;
+ ctx.drawImage(video,0,0);
+ let crop=ctx.getImageData(x,y,w,h);
+ canvas.width=w; canvas.height=h;
+ ctx.putImageData(crop,0,0);
 
-async function scanVochaImage(input){
- let file=input.files[0];
- if(!file) return;
- document.getElementById('ocrRes').innerText='Inasoma namba... subiri';
- let result = await Tesseract.recognize(file,'eng', {tessedit_char_whitelist:'0123456789'});
- let text = result.data.text;
- let match = text.match(/\d{10,16}/g);
- if(match){
-   let best = match.sort((a,b)=>b.length-a.length)[0];
+ try{
+  const {data:{text}}=await Tesseract.recognize(canvas,'eng',{tessedit_char_whitelist:'0123456789', tessedit_pageseg_mode:'7'});
+  let m=text.match(/\d{10,16}/g);
+  if(m){
+   let best=m.sort((a,b)=>b.length-a.length)[0];
    document.getElementById('vochaNum').value=best;
-   navigator.clipboard.writeText(best);
    showCopy(best);
-   document.getElementById('ocrRes').innerHTML=`<b class="ok">Imepatikana: ${best} - IMEKOPIWA</b>`;
-   checkVocha();
- }else{
-   document.getElementById('ocrRes').innerText='Hakuna namba iliyoonekana.';
+   document.getElementById('scanInfo').innerHTML=`<b style="color:#00d166">✓ ${best} - IMEKOPIWA</b>`;
+   checkAndCopy();
+  }else{
+   document.getElementById('scanInfo').innerText='❌ Sogeza karibu zaidi, jaribu tena';
+  }
+ }catch(e){
+  document.getElementById('scanInfo').innerText='Jaribu tena';
  }
 }
 
-function detectNetwork(num){
- if(num.startsWith('1')||num.startsWith('2')) return {name:'VODACOM',cls:'vodacom'};
- if(num.startsWith('3')||num.startsWith('4')) return {name:'TIGO',cls:'tigo'};
- if(num.startsWith('5')||num.startsWith('6')) return {name:'AIRTEL',cls:'airtel'};
- return {name:'VOCHA',cls:''};
+async function scanImage(input){
+ let file=input.files[0]; if(!file) return;
+ document.getElementById('imgInfo').innerText='Inasoma...';
+ const {data:{text}}=await Tesseract.recognize(file,'eng',{tessedit_char_whitelist:'0123456789'});
+ let m=text.match(/\d{10,16}/g);
+ if(m){
+  let best=m.sort((a,b)=>b.length-a.length)[0];
+  document.getElementById('vochaNum').value=best;
+  showCopy(best);
+  document.getElementById('imgInfo').innerHTML=`<b style="color:#00d166">${best} - IMEKOPIWA</b>`;
+  checkAndCopy();
+ }else document.getElementById('imgInfo').innerText='Hakuna namba';
 }
 
-function checkVocha(){
- let num=document.getElementById('vochaNum').value.replace(/\s/g,'').replace(/\D/g,'');
- if(num.length<10){alert('Namba lazima iwe 10-16');return}
- let net=detectNetwork(num);
- let exists=historyData.find(h=>h.num===num);
- let res=document.getElementById('result');
-
- navigator.clipboard.writeText(num);
+function checkAndCopy(){
+ let num=document.getElementById('vochaNum').value.replace(/\D/g,'');
+ if(num.length<10) return;
  showCopy(num);
-
- if(exists){
-   res.innerHTML=`<div class="stat bad ${net.cls}"><span>IMEKWISHA TUMIKA! Lakini IMEKOPIWA</span><span>${exists.date}</span></div>`;
-   return;
- }
- let code = `*104*${num}#`;
- res.innerHTML=`<div class="stat ok ${net.cls}"><span>${net.name}: ${num}</span><span>IMEKOPIWA</span></div><button class="btn btn-green" onclick="loadVocha('${code}')">PAKIA VOCHA ${code}</button>`;
- saveHistory(num, net.name);
+ let r=document.getElementById('result');
+ r.innerHTML=`<div class="stat"><span>${num}</span><span style="color:#00d166">IMEKOPIWA</span></div><button class="btn btn-g" onclick="window.location.href='tel:*104*${num}%23'">PAKIA *104*${num}#</button>`;
+ if(!hist.find(h=>h==num)){hist.unshift(num); localStorage.setItem('aax_vocha',JSON.stringify(hist)); render();}
 }
-
-function loadVocha(code){ window.location.href = `tel:${encodeURIComponent(code)}`; }
-function saveHistory(num, net){
- if(historyData.find(h=>h.num===num)) return;
- let now = new Date().toLocaleDateString();
- historyData.unshift({num:num, network:net, date:now});
- localStorage.setItem('aax_vocha', JSON.stringify(historyData));
- renderHistory();
+function render(){
+ let h=document.getElementById('history');
+ if(hist.length==0){h.innerHTML='Hakuna';return}
+ h.innerHTML=hist.map(n=>`<div class="stat" onclick="document.getElementById('vochaNum').value='${n}';showCopy('${n}')"><span>${n}</span><span>gusa ku-copy</span></div>`).join('');
 }
-function renderHistory(){
- let h = document.getElementById('history');
- if(historyData.length===0){ h.innerHTML='Hakuna'; return; }
- h.innerHTML = historyData.map(i=>`<div class="stat" onclick="copyOld('${i.num}')"><span>${i.num}</span><span>${i.network} - ${i.date} (gusa ku-copy)</span></div>`).join('');
-}
-function copyOld(num){
- document.getElementById('vochaNum').value=num;
- navigator.clipboard.writeText(num);
- showCopy(num);
-}
-function clearInput(){ document.getElementById('vochaNum').value=''; document.getElementById('result').innerHTML=''; }
-function clearH(){ localStorage.removeItem('aax_vocha'); historyData=[]; renderHistory(); }
-renderHistory();
+render();
 </script>
 </body>
 </html>
