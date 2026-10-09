@@ -1,0 +1,137 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AAX VOCHA SCAN</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#000;color:#fff;font-family:Arial;padding:12px}
+h1{text-align:center;color:#ffaa00;letter-spacing:3px}
+.box{background:#111;border:1px solid #222;border-radius:14px;padding:14px;margin:12px 0}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;color:#fff;margin:6px 0;font-size:16px}
+.btn-yellow{background:#ffaa00;color:#000}
+.btn-green{background:#00d166}
+.btn-blue{background:#00aaff}
+input{width:100%;padding:14px;border-radius:10px;border:none;background:#222;color:#fff;margin:6px 0;text-align:center;font-size:20px;letter-spacing:3px}
+.stat{display:flex;justify-content:space-between;padding:12px;background:#1a1a1a;border-radius:8px;margin:6px 0}
+#reader{width:100%;border-radius:12px;overflow:hidden}
+.ok{color:#00d166}.bad{color:#ff4444}
+.vodacom{border-left:4px solid #e60000}.tigo{border-left:4px solid #0033a0}.airtel{border-left:4px solid #ff0000}
+</style>
+</head>
+<body>
+<h1>AAX VOCHA SCAN</h1>
+
+<div class="box">
+<h3 style="margin:0">1. SCAN KWA CAMERA</h3>
+<div id="reader"></div>
+<button class="btn btn-yellow" onclick="startScan()">WASHA CAMERA SCAN VOCHA</button>
+<p id="scanRes" style="text-align:center;font-size:18px">Hakuna vocha bado</p>
+</div>
+
+<div class="box">
+<h3 style="margin:0">2. SCAN PICHA YA VOCHA</h3>
+<input type="file" id="img" accept="image/*" onchange="scanVochaImage(this)" style="display:none">
+<button class="btn btn-blue" onclick="document.getElementById('img').click()">CHAGUA PICHA YA VOCHA</button>
+<div id="ocrRes" style="color:#888;font-size:13px;text-align:center">Inasubiri picha</div>
+</div>
+
+<div class="box">
+<h3 style="margin:0">3. NAMBA YA VOCHA</h3>
+<input id="vochaNum" placeholder="INGIZA NAMBA YA VOCHA" maxlength="16">
+<div style="display:flex;gap:8px">
+<button class="btn btn-green" style="flex:1" onclick="checkVocha()">THIBITISHA</button>
+<button class="btn" style="flex:1;background:#222" onclick="clearInput()">FUTA</button>
+</div>
+<div id="result"></div>
+</div>
+
+<div class="box">
+<h3 style="margin:0">HISTORY</h3>
+<div id="history">Hakuna</div>
+<button class="btn" style="background:#222" onclick="clearH()">Futa History</button>
+</div>
+
+<script>
+// @ts-nocheck
+let historyData=JSON.parse(localStorage.getItem('aax_vocha')||'[]');
+let html5Qr=null;
+function startScan(){
+ document.getElementById('scanRes').innerText='Inatafuta...';
+ html5Qr = new Html5Qrcode("reader");
+ html5Qr.start({facingMode:"environment"}, {fps:15, qrbox:{width:280,height:100}},
+  (decoded)=>{
+    let num = decoded.replace(/\D/g,'');
+    if(num.length>=12){
+      document.getElementById('vochaNum').value=num;
+      document.getElementById('scanRes').innerHTML=`<b class="ok">✓ ${num}</b>`;
+      if(navigator.vibrate) navigator.vibrate(200);
+      checkVocha();
+    }
+  },()=>{});
+}
+async function scanVochaImage(input){
+ let file=input.files[0];
+ if(!file) return;
+ document.getElementById('ocrRes').innerText='Inasoma namba... subiri';
+ let result = await Tesseract.recognize(file,'eng');
+ let text = result.data.text;
+ let match = text.match(/\d{12,16}/g);
+ if(match){
+   let best = match.sort((a,b)=>b.length-a.length)[0];
+   document.getElementById('vochaNum').value=best;
+   document.getElementById('ocrRes').innerHTML=`<b class="ok">Imepatikana: ${best}</b>`;
+   checkVocha();
+ }else{
+   document.getElementById('ocrRes').innerText='Hakuna namba iliyoonekana.';
+ }
+}
+function detectNetwork(num){
+ if(num.startsWith('1')||num.startsWith('2')) return {name:'VODACOM',cls:'vodacom'};
+ if(num.startsWith('3')||num.startsWith('4')) return {name:'TIGO',cls:'tigo'};
+ if(num.startsWith('5')||num.startsWith('6')) return {name:'AIRTEL',cls:'airtel'};
+ return {name:'VOCHA',cls:''};
+}
+function checkVocha(){
+ let num=document.getElementById('vochaNum').value.replace(/\s/g,'').replace(/\D/g,'');
+ if(num.length<12){alert('Namba lazima iwe 12-16');return}
+ let net=detectNetwork(num);
+ let exists=historyData.find(h=>h.num===num);
+ let res=document.getElementById('result');
+ if(exists){
+   res.innerHTML=`<div class="stat bad ${net.cls}"><span>IMEKWISHA TUMIKA!</span><span>${exists.date}</span></div>`;
+   return;
+ }
+ let ussd={
+     'VODACOM': `*104*${num}#`,
+     'TIGO': `*104*${num}#`,
+     'AIRTEL': `*104*${num}#`,
+     'HALOTEL': `*104*${num}#`,
+     'VOCHA': `*104*${num}#`
+ };
+ let code = ussd[net.name] || ussd['VOCHA'];
+ res.innerHTML=`<div class="stat ok ${net.cls}"><span>${net.name}: ${num}</span><span>Tayari</span></div><button class="btn btn-green" onclick="loadVocha('${code}')">PAKIA VOCHA ${code}</button>`;
+ saveHistory(num, net.name);
+}
+function loadVocha(code){
+ window.location.href = `tel:${encodeURIComponent(code)}`;
+}
+function saveHistory(num, net){
+ let now = new Date().toLocaleDateString();
+ historyData.unshift({num:num, network:net, date:now});
+ localStorage.setItem('aax_vocha', JSON.stringify(historyData));
+ renderHistory();
+}
+function renderHistory(){
+ let h = document.getElementById('history');
+ if(historyData.length===0){ h.innerHTML='Hakuna'; return; }
+ h.innerHTML = historyData.map(i=>`<div class="stat"><span>${i.num}</span><span>${i.network} - ${i.date}</span></div>`).join('');
+}
+function clearInput(){ document.getElementById('vochaNum').value=''; document.getElementById('result').innerHTML=''; }
+function clearH(){ localStorage.removeItem('aax_vocha'); historyData=[]; renderHistory(); }
+renderHistory();
+</script>
+</body>
+</html>
