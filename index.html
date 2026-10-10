@@ -3,120 +3,118 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AAX VOCHA FAST</title>
+<title>AAX SCAN + COPY FIX</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
-body{margin:0;background:#0a0a0a;color:#fff;font-family:sans-serif;text-align:center;padding:10px}
-h1{color:#ffb700;margin:10px 0;font-size:22px}
-#box{border:2px solid #ffb700;border-radius:15px;overflow:hidden;position:relative;height:380px;background:#000}
-video,canvas{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
-#focus{position:absolute;top:10%;left:5%;width:90%;height:35%;border:2px dashed #ffb700;border-radius:10px;z-index:5}
-.btn{width:100%;padding:16px;border:none;border-radius:12px;font-weight:900;font-size:16px;margin-top:10px}
+body{margin:0;background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:10px}
+#box{border:4px solid #ffb700;border-radius:16px;overflow:hidden;position:relative;height:420px;background:#111;display:flex;align-items:center;justify-content:center}
+video{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+#focus{position:absolute;top:22%;left:5%;width:90%;height:55%;border:3px dashed #00ff6a;border-radius:12px;z-index:5}
+#preview{width:100%;height:100%;object-fit:contain;display:none;position:absolute;top:0;left:0;background:#000}
+#num{font-size:24px;background:#111;padding:16px;border-radius:12px;border:2px solid #ffb700;color:#ffb700;font-weight:900;margin:12px 0;word-break:break-all;user-select:all}
+#ok{font-weight:bold;min-height:22px;margin:6px 0}
+.btn{width:100%;padding:16px;border:none;border-radius:12px;font-weight:900;font-size:17px;margin-top:8px}
 #scan{background:#ffb700;color:#000}
-#pick{background:#1e9fff;color:#fff}
-#num{font-size:20px;letter-spacing:1px;margin:15px 0;background:#1a1a1a;padding:12px;border-radius:10px;word-break:break-all;border:1px solid #333}
-#ok{color:#00ff6a;font-weight:bold;min-height:24px;margin:8px 0;font-size:14px}
-.row{display:flex;gap:10px}
-.row button{flex:1;padding:14px;border-radius:10px;border:none;font-weight:900;font-size:14px}
-#copy{background:#00c853;color:#fff}
-#futa{background:#333;color:#fff}
+#pick{background:#2196F3;color:#fff}
+#copy{background:#ff9800;color:#000}
+#dial{background:#00c853;color:#fff}
 </style>
 </head>
 <body>
-<h1>AAX VOCHA FAST</h1>
+<h2 style="color:#ffb700">AAX SCAN - COPY FIX</h2>
 <div id="box">
 <video id="v" autoplay playsinline muted></video>
-<canvas id="c" style="display:none"></canvas>
+<img id="preview">
 <div id="focus"></div>
 </div>
-<button id="scan" class="btn">📷 SCAN HARAKA</button>
-<div id="ok"></div>
-<button id="pick" class="btn">🖼️ CHAGUA PICHA</button>
-<input type="file" id="file" accept="image/*" style="display:none">
+<input type="file" id="file" accept="image/*" capture="environment" style="display:none">
+<button id="scan" class="btn">📷 PIGA PICHA VOCHA</button>
+<button id="pick" class="btn">🖼️ CHAGUA KUTOKA GALLERY</button>
+<div id="ok">Bonyeza PIGA PICHA - usiweke live</div>
 <div id="num">*104* ---- #</div>
-<div class="row">
-<button id="copy">COPY & PIGA *104*...#</button>
-<button id="futa">FUTA</button>
-</div>
-
+<button id="copy" class="btn">📋 COPY NAMBA</button>
+<button id="dial" class="btn">📞 PIGA *104#</button>
+<canvas id="c" style="display:none"></canvas>
 <script>
-const v=document.getElementById('v'), c=document.getElementById('c'), ctx=c.getContext('2d'),
-ok=document.getElementById('ok'), numDiv=document.getElementById('num');
-let stream, lastUSSD="";
+const v=document.getElementById('v'), c=document.getElementById('c'), ok=document.getElementById('ok'), numDiv=document.getElementById('num'), fileIn=document.getElementById('file'), preview=document.getElementById('preview');
+let worker=null, lastNUM="", lastUSSD="", stream=null;
 
-async function startCam(){
+async function init(){
  try{
-  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:1280}});
-  v.srcObject=stream;
- }catch(e){
-  ok.innerText="Ruhusu camera kwenye browser";
- }
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  v.srcObject=stream; await v.play();
+  worker=await Tesseract.createWorker('eng');
+  await worker.setParameters({tessedit_char_whitelist:'0123456789'});
+  ok.innerText="✓ Tayari - piga picha ya vocha yako";
+ }catch(e){ok.innerText="Camera error, tumia Gallery: "+e.message;}
 }
-startCam();
+init();
 
-function clean(t){
- let d=t.replace(/\D/g,'');
- if(d.length>=12) return d.slice(-14);
- return d;
+function extract(text){
+ let clean=text.replace(/[^0-9]/g,' ');
+ let all=clean.replace(/\s+/g,'');
+ all=all.replace(/03250500\d+/g,'').replace(/0325\d+/g,''); // toa SN
+ let m=all.match(/96537\d{9}/) || all.match(/9\d{13}/) || all.match(/\d{14}/) || all.match(/\d{12,13}/);
+ return m?m[0].slice(0,14):"";
 }
 
 async function doOCR(imgSource){
- ok.style.color="#ffb700"; ok.innerText="⏳ Inasoma juu tu...";
+ ok.style.color="#ffb700"; ok.innerText="⏳ Inasoma... subiri 3 sec";
+ numDiv.innerText="*104* ---- #";
+ lastNUM=""; lastUSSD="";
  try{
-  const {data:{text}} = await Tesseract.recognize(imgSource,'eng',{
-   tessedit_char_whitelist:'0123456789',
-   tessedit_pageseg_mode:'7'
-  });
-  let n=clean(text);
-  if(n.length>=12){
-   lastUSSD="*104*"+n+"#";
-   numDiv.innerText=lastUSSD;
-   ok.style.color="#00ff6a"; ok.innerText="✓ "+lastUSSD+" - IMEKOPIWA";
-   try{ await navigator.clipboard.writeText(lastUSSD); }catch{}
+  let {data:{text}}=await worker.recognize(imgSource);
+  console.log(text);
+  let num=extract(text);
+  if(num.length>=12){
+    lastNUM=num; lastUSSD="*104*"+num+"#"; numDiv.innerText=lastUSSD;
+    ok.style.color="#00ff6a"; ok.innerText="✓ Imefanikiwa: "+num+" - Ime-copy tayari!";
+    // COPY AUTOMATIC - njia 2
+    try{await navigator.clipboard.writeText(lastUSSD);}catch{
+      let ta=document.createElement('textarea'); ta.value=lastUSSD; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    }
   }else{
-   ok.style.color="#ff4444"; ok.innerText="Haijasomeka, weka namba ya JUU tu kwenye box ya yellow";
+    ok.style.color="#ff4444"; ok.innerText="Haijasoma: "+text.slice(0,40)+" - jaribu picha karibu zaidi";
   }
  }catch(e){
-  ok.style.color="#ff4444"; ok.innerText="Jaribu tena";
+  ok.style.color="#ff4444"; ok.innerText="Error: "+e.message;
  }
 }
 
-document.getElementById('scan').onclick=async()=>{
- if(!stream){ ok.innerText="Camera bado haijawaka"; return; }
+document.getElementById('scan').onclick=()=>{
+ // piga picha kutoka video
  const vw=v.videoWidth, vh=v.videoHeight;
+ if(!vw){ok.innerText="Camera bado"; return;}
  c.width=vw; c.height=vh;
- ctx.drawImage(v,0,0);
- const sx=vw*0.05, sy=vh*0.08, sw=vw*0.90, sh=vh*0.38;
- const tmp=document.createElement('canvas'); tmp.width=sw; tmp.height=sh;
- tmp.getContext('2d').drawImage(c,sx,sy,sw,sh,0,0,sw,sh);
- const tCtx=tmp.getContext('2d');
- const imgData=tCtx.getImageData(0,0,sw,sh);
- for(let i=0;i<imgData.data.length;i+=4){
-   let avg=(imgData.data[i]+imgData.data[i+1]+imgData.data[i+2])/3;
-   let val=avg>120?255:0;
-   imgData.data[i]=imgData.data[i+1]=imgData.data[i+2]=val;
- }
- tCtx.putImageData(imgData,0,0);
- doOCR(tmp);
+ c.getContext('2d').drawImage(v,0,0);
+ preview.src=c.toDataURL(); preview.style.display="block"; v.style.display="none";
+ doOCR(c);
 };
 
-document.getElementById('pick').onclick=()=>document.getElementById('file').click();
-document.getElementById('file').onchange=e=>{
- const r=new FileReader();
- r.onload=()=>doOCR(r.result);
- r.readAsDataURL(e.target.files[0]);
+fileIn.onchange=e=>{
+ let file=e.target.files[0]; if(!file) return;
+ let url=URL.createObjectURL(file);
+ preview.src=url; preview.style.display="block"; v.style.display="none";
+ preview.onload=()=> doOCR(preview);
 };
+
+document.getElementById('pick').onclick=()=> fileIn.click();
 
 document.getElementById('copy').onclick=async()=>{
- if(!lastUSSD){ ok.innerText="Scan kwanza"; return; }
- try{ await navigator.clipboard.writeText(lastUSSD); }catch{}
- ok.innerText="Inapiga: "+lastUSSD;
- window.location.href="tel:"+encodeURIComponent(lastUSSD);
+ if(!lastUSSD){ok.innerText="Hakuna namba ya ku-copy"; return;}
+ try{
+  await navigator.clipboard.writeText(lastUSSD);
+  ok.style.color="#00ff6a"; ok.innerText="✓ Ime-copy: "+lastUSSD;
+ }catch{
+  let ta=document.createElement('textarea'); ta.value=lastUSSD; document.body.appendChild(ta); ta.select(); let okCopy=document.execCommand('copy'); document.body.removeChild(ta);
+  if(okCopy) ok.innerText="✓ Ime-copy: "+lastUSSD; else ok.innerText="Shindwa ku-copy, chagua namba na hold copy: "+lastUSSD;
+ }
 };
 
-document.getElementById('futa').onclick=()=>{
- lastUSSD=""; numDiv.innerText="*104* ---- #"; ok.innerText="";
-}
+document.getElementById('dial').onclick=()=>{
+ if(!lastUSSD){ok.innerText="Scan kwanza"; return;}
+ window.location.href="tel:"+encodeURIComponent(lastUSSD);
+};
 </script>
 </body>
 </html>
