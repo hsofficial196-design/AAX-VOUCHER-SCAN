@@ -92,6 +92,33 @@ document.getElementById('scan').onclick=async()=>{
  tmp.getContext('2d').drawImage(c,sx,sy,sw,sh,0,0,sw,sh);
  const tCtx=tmp.getContext('2d');
  const imgData=tCtx.getImageData(0,0,sw,sh);
- for(let i=
+ for(let i=0;i<imgData.data.length;i+=4){
+   let avg=(imgData.data[i]+imgData.data[i+1]+imgData.data[i+2])/3;
+   let val=avg>120?255:0;
+   imgData.data[i]=imgData.data[i+1]=imgData.data[i+2]=val;
+ }
+ tCtx.putImageData(imgData,0,0);
+ doOCR(tmp);
+};
 
+document.getElementById('pick').onclick=()=>document.getElementById('file').click();
+document.getElementById('file').onchange=e=>{
+ const r=new FileReader();
+ r.onload=()=>doOCR(r.result);
+ r.readAsDataURL(e.target.files[0]);
+};
+
+document.getElementById('copy').onclick=async()=>{
+ if(!lastUSSD){ ok.innerText="Scan kwanza"; return; }
+ try{ await navigator.clipboard.writeText(lastUSSD); }catch{}
+ ok.innerText="Inapiga: "+lastUSSD;
+ window.location.href="tel:"+encodeURIComponent(lastUSSD);
+};
+
+document.getElementById('futa').onclick=()=>{
+ lastUSSD=""; numDiv.innerText="*104* ---- #"; ok.innerText="";
+}
+</script>
+</body>
+</html>
  
