@@ -1,120 +1,46 @@
 <!DOCTYPE html>
 <html lang="sw">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AAX SCAN + COPY FIX</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AAX VOCHA FAST</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
-body{margin:0;background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:10px}
-#box{border:4px solid #ffb700;border-radius:16px;overflow:hidden;position:relative;height:420px;background:#111;display:flex;align-items:center;justify-content:center}
-video{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
-#focus{position:absolute;top:22%;left:5%;width:90%;height:55%;border:3px dashed #00ff6a;border-radius:12px;z-index:5}
-#preview{width:100%;height:100%;object-fit:contain;display:none;position:absolute;top:0;left:0;background:#000}
-#num{font-size:24px;background:#111;padding:16px;border-radius:12px;border:2px solid #ffb700;color:#ffb700;font-weight:900;margin:12px 0;word-break:break-all;user-select:all}
-#ok{font-weight:bold;min-height:22px;margin:6px 0}
-.btn{width:100%;padding:16px;border:none;border-radius:12px;font-weight:900;font-size:17px;margin-top:8px}
-#scan{background:#ffb700;color:#000}
-#pick{background:#2196F3;color:#fff}
-#copy{background:#ff9800;color:#000}
-#dial{background:#00c853;color:#fff}
+*{box-sizing:border-box;margin:0;padding:0}body{background:#000;color:#fff;font-family:sans-serif;padding:10px}
+h1{color:#ffb700;text-align:center;font-size:32px;font-weight:900;margin:10px 0}
+.card{background:#0f0f0f;border-radius:18px;padding:12px;margin-bottom:14px;border:1px solid #222}
+#box{border:3px solid #ffb700;border-radius:16px;height:400px;position:relative;overflow:hidden;background:#0a2a12;display:flex;align-items:center;justify-content:center}
+#box video,#box img{width:100%;height:100%;object-fit:cover}
+#ok{color:#00ff6a;text-align:center;font-weight:900;margin:10px 0;display:none}
+.btn{width:100%;padding:16px;border:none;border-radius:14px;font-weight:900;font-size:16px}
+#scan{background:#ffb700;color:#000}#pick{background:#2196F3;color:#fff}
+#num{background:#1a1a1a;border-radius:14px;padding:18px;text-align:center;font-size:22px;font-weight:900;color:#ffb700;border:2px solid #ffb700;word-break:break-all;margin-bottom:10px}
+.row{display:flex;gap:10px}#copy{background:#00c853;color:#fff;flex:1.6}#futa{background:#2a2a2a;color:#fff;flex:1}
 </style>
 </head>
 <body>
-<h2 style="color:#ffb700">AAX SCAN - COPY FIX</h2>
-<div id="box">
-<video id="v" autoplay playsinline muted></video>
-<img id="preview">
-<div id="focus"></div>
+<h1>AAX VOCHA FAST</h1>
+<div class="card">
+<div id="box"><video id="v" autoplay playsinline muted></video><img id="img" style="display:none"></div>
+<button id="scan" class="btn" style="margin-top:12px">📷 SCAN HARAKA (1 sec)</button>
+<div id="ok">✓ <span id="okNum"></span> - IMEKOPIWA</div>
 </div>
-<input type="file" id="file" accept="image/*" capture="environment" style="display:none">
-<button id="scan" class="btn">📷 PIGA PICHA VOCHA</button>
-<button id="pick" class="btn">🖼️ CHAGUA KUTOKA GALLERY</button>
-<div id="ok">Bonyeza PIGA PICHA - usiweke live</div>
+<div class="card"><button id="pick" class="btn">🖼️ CHAGUA PICHA</button></div>
+<div class="card">
 <div id="num">*104* ---- #</div>
-<button id="copy" class="btn">📋 COPY NAMBA</button>
-<button id="dial" class="btn">📞 PIGA *104#</button>
-<canvas id="c" style="display:none"></canvas>
+<div class="row"><button id="copy" class="btn">COPY & THIBITISHA</button><button id="futa" class="btn">FUTA</button></div>
+</div>
+<input type="file" id="file" accept="image/*" style="display:none"><canvas id="c" style="display:none"></canvas>
 <script>
-const v=document.getElementById('v'), c=document.getElementById('c'), ok=document.getElementById('ok'), numDiv=document.getElementById('num'), fileIn=document.getElementById('file'), preview=document.getElementById('preview');
-let worker=null, lastNUM="", lastUSSD="", stream=null;
-
-async function init(){
- try{
-  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-  v.srcObject=stream; await v.play();
-  worker=await Tesseract.createWorker('eng');
-  await worker.setParameters({tessedit_char_whitelist:'0123456789'});
-  ok.innerText="✓ Tayari - piga picha ya vocha yako";
- }catch(e){ok.innerText="Camera error, tumia Gallery: "+e.message;}
-}
-init();
-
-function extract(text){
- let clean=text.replace(/[^0-9]/g,' ');
- let all=clean.replace(/\s+/g,'');
- all=all.replace(/03250500\d+/g,'').replace(/0325\d+/g,''); // toa SN
- let m=all.match(/96537\d{9}/) || all.match(/9\d{13}/) || all.match(/\d{14}/) || all.match(/\d{12,13}/);
- return m?m[0].slice(0,14):"";
-}
-
-async function doOCR(imgSource){
- ok.style.color="#ffb700"; ok.innerText="⏳ Inasoma... subiri 3 sec";
- numDiv.innerText="*104* ---- #";
- lastNUM=""; lastUSSD="";
- try{
-  let {data:{text}}=await worker.recognize(imgSource);
-  console.log(text);
-  let num=extract(text);
-  if(num.length>=12){
-    lastNUM=num; lastUSSD="*104*"+num+"#"; numDiv.innerText=lastUSSD;
-    ok.style.color="#00ff6a"; ok.innerText="✓ Imefanikiwa: "+num+" - Ime-copy tayari!";
-    // COPY AUTOMATIC - njia 2
-    try{await navigator.clipboard.writeText(lastUSSD);}catch{
-      let ta=document.createElement('textarea'); ta.value=lastUSSD; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    }
-  }else{
-    ok.style.color="#ff4444"; ok.innerText="Haijasoma: "+text.slice(0,40)+" - jaribu picha karibu zaidi";
-  }
- }catch(e){
-  ok.style.color="#ff4444"; ok.innerText="Error: "+e.message;
- }
-}
-
-document.getElementById('scan').onclick=()=>{
- // piga picha kutoka video
- const vw=v.videoWidth, vh=v.videoHeight;
- if(!vw){ok.innerText="Camera bado"; return;}
- c.width=vw; c.height=vh;
- c.getContext('2d').drawImage(v,0,0);
- preview.src=c.toDataURL(); preview.style.display="block"; v.style.display="none";
- doOCR(c);
-};
-
-fileIn.onchange=e=>{
- let file=e.target.files[0]; if(!file) return;
- let url=URL.createObjectURL(file);
- preview.src=url; preview.style.display="block"; v.style.display="none";
- preview.onload=()=> doOCR(preview);
-};
-
-document.getElementById('pick').onclick=()=> fileIn.click();
-
-document.getElementById('copy').onclick=async()=>{
- if(!lastUSSD){ok.innerText="Hakuna namba ya ku-copy"; return;}
- try{
-  await navigator.clipboard.writeText(lastUSSD);
-  ok.style.color="#00ff6a"; ok.innerText="✓ Ime-copy: "+lastUSSD;
- }catch{
-  let ta=document.createElement('textarea'); ta.value=lastUSSD; document.body.appendChild(ta); ta.select(); let okCopy=document.execCommand('copy'); document.body.removeChild(ta);
-  if(okCopy) ok.innerText="✓ Ime-copy: "+lastUSSD; else ok.innerText="Shindwa ku-copy, chagua namba na hold copy: "+lastUSSD;
- }
-};
-
-document.getElementById('dial').onclick=()=>{
- if(!lastUSSD){ok.innerText="Scan kwanza"; return;}
- window.location.href="tel:"+encodeURIComponent(lastUSSD);
-};
+const v=document.getElementById('v'), img=document.getElementById('img'), file=document.getElementById('file'), c=document.getElementById('c'), ok=document.getElementById('ok'), okNum=document.getElementById('okNum'), numDiv=document.getElementById('num');
+let worker, last="", lastUSSD="";
+async function init(){let s=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});v.srcObject=s;await v.play();worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_char_whitelist:'0123456789'});}init();
+function getVocha(t){let all=t.replace(/[^0-9]/g,' ');all=all.replace(/0325\d+/g,' ');let m=all.match(/3\d{13}/)||all.match(/\d{14}/)||all.match(/\d{12,13}/);return m?m[0].slice(0,14):"";}
+async function scan(src){numDiv.innerText="INASOMA...";let {data:{text}}=await worker.recognize(src);let n=getVocha(text);if(n){last=n;lastUSSD="*104*"+n+"#";numDiv.innerText=lastUSSD;okNum.innerText=n;ok.style.display="block";try{await navigator.clipboard.writeText(lastUSSD);}catch{} }else{numDiv.innerText="HAIKUSOMA";}}
+document.getElementById('scan').onclick=()=>{c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);scan(c);};
+document.getElementById('pick').onclick=()=>file.click();
+file.onchange=e=>{let f=e.target.files[0];let u=URL.createObjectURL(f);img.src=u;img.style.display="block";v.style.display="none";img.onload=()=>scan(img);};
+document.getElementById('copy').onclick=()=>{if(!lastUSSD)return;window.location.href="tel:"+encodeURIComponent(lastUSSD);};
+document.getElementById('futa').onclick=()=>{last="";lastUSSD="";numDiv.innerText="*104* ---- #";ok.style.display="none";img.style.display="none";v.style.display="block";};
 </script>
 </body>
 </html>
