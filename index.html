@@ -8,17 +8,17 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 body{margin:0;background:#0a0a0a;color:#fff;font-family:sans-serif;text-align:center;padding:10px}
-h1{color:#ffb700;margin:10px 0}
+h1{color:#ffb700;margin:10px 0;font-size:22px}
 #box{border:2px solid #ffb700;border-radius:15px;overflow:hidden;position:relative;height:380px;background:#000}
 video,canvas{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
 #focus{position:absolute;top:10%;left:5%;width:90%;height:35%;border:2px dashed #ffb700;border-radius:10px;z-index:5}
 .btn{width:100%;padding:16px;border:none;border-radius:12px;font-weight:900;font-size:16px;margin-top:10px}
 #scan{background:#ffb700;color:#000}
 #pick{background:#1e9fff;color:#fff}
-#num{font-size:26px;letter-spacing:4px;margin:15px 0;background:#1a1a1a;padding:12px;border-radius:10px}
-#ok{color:#00ff6a;font-weight:bold;min-height:24px;margin:8px 0}
+#num{font-size:20px;letter-spacing:1px;margin:15px 0;background:#1a1a1a;padding:12px;border-radius:10px;word-break:break-all;border:1px solid #333}
+#ok{color:#00ff6a;font-weight:bold;min-height:24px;margin:8px 0;font-size:14px}
 .row{display:flex;gap:10px}
-.row button{flex:1;padding:14px;border-radius:10px;border:none;font-weight:900}
+.row button{flex:1;padding:14px;border-radius:10px;border:none;font-weight:900;font-size:14px}
 #copy{background:#00c853;color:#fff}
 #futa{background:#333;color:#fff}
 </style>
@@ -30,39 +30,39 @@ video,canvas{width:100%;height:100%;object-fit:cover;position:absolute;top:0;lef
 <canvas id="c" style="display:none"></canvas>
 <div id="focus"></div>
 </div>
-<button id="scan" class="btn">📷 SCAN HARAKA (1 sec)</button>
+<button id="scan" class="btn">📷 SCAN HARAKA</button>
 <div id="ok"></div>
 <button id="pick" class="btn">🖼️ CHAGUA PICHA</button>
 <input type="file" id="file" accept="image/*" style="display:none">
-<div id="num">---- ---- ----</div>
+<div id="num">*104* ---- #</div>
 <div class="row">
-<button id="copy">COPY & THIBITISHA</button>
+<button id="copy">COPY & PIGA *104*...#</button>
 <button id="futa">FUTA</button>
 </div>
 
 <script>
 const v=document.getElementById('v'), c=document.getElementById('c'), ctx=c.getContext('2d'),
 ok=document.getElementById('ok'), numDiv=document.getElementById('num');
-let stream, lastNum="";
+let stream, lastUSSD="";
 
 async function startCam(){
- try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:1280}}); v.srcObject=stream;}catch(e){ok.innerText="Ruhusu camera"}
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:1280}});
+  v.srcObject=stream;
+ }catch(e){
+  ok.innerText="Ruhusu camera kwenye browser";
+ }
 }
 startCam();
 
 function clean(t){
- // toa nafasi zote, chukua namba tu 12-14
  let d=t.replace(/\D/g,'');
- // vocha nyingi ni 14, lakini zingine 12-13
- if(d.length>=12){
-   // kama kuna namba ndefu, kata 14 za mwisho
-   return d.slice(-14);
- }
+ if(d.length>=12) return d.slice(-14);
  return d;
 }
 
 async function doOCR(imgSource){
- ok.style.color="#ffb700"; ok.innerText="⏳ Inasoma JUUs...";
+ ok.style.color="#ffb700"; ok.innerText="⏳ Inasoma juu tu...";
  try{
   const {data:{text}} = await Tesseract.recognize(imgSource,'eng',{
    tessedit_char_whitelist:'0123456789',
@@ -70,51 +70,28 @@ async function doOCR(imgSource){
   });
   let n=clean(text);
   if(n.length>=12){
-   lastNum=n;
-   numDiv.innerText=n.replace(/(.{4})/g,'$1 ').trim();
-   ok.style.color="#00ff6a"; ok.innerText="✓ "+n+" - IMEKOPIWA";
-   try{await navigator.clipboard.writeText(n);}catch{}
+   lastUSSD="*104*"+n+"#";
+   numDiv.innerText=lastUSSD;
+   ok.style.color="#00ff6a"; ok.innerText="✓ "+lastUSSD+" - IMEKOPIWA";
+   try{ await navigator.clipboard.writeText(lastUSSD); }catch{}
   }else{
-   ok.style.color="#ff4444"; ok.innerText="Haijasomeka, sogeza karibu sehemu ya JUU tu";
+   ok.style.color="#ff4444"; ok.innerText="Haijasomeka, weka namba ya JUU tu kwenye box ya yellow";
   }
- }catch(e){ok.innerText="Jaribu tena"}
+ }catch(e){
+  ok.style.color="#ff4444"; ok.innerText="Jaribu tena";
+ }
 }
 
 document.getElementById('scan').onclick=async()=>{
- if(!stream) return;
- // Kata picha 60% tu - sehemu ya JUU ya vocha
+ if(!stream){ ok.innerText="Camera bado haijawaka"; return; }
  const vw=v.videoWidth, vh=v.videoHeight;
  c.width=vw; c.height=vh;
  ctx.drawImage(v,0,0);
- // chukua juu tu: y=5% hadi 45% height
  const sx=vw*0.05, sy=vh*0.08, sw=vw*0.90, sh=vh*0.38;
  const tmp=document.createElement('canvas'); tmp.width=sw; tmp.height=sh;
  tmp.getContext('2d').drawImage(c,sx,sy,sw,sh,0,0,sw,sh);
- // ongeza contrast
  const tCtx=tmp.getContext('2d');
  const imgData=tCtx.getImageData(0,0,sw,sh);
- for(let i=0;i<imgData.data.length;i+=4){
-   let avg=(imgData.data[i]+imgData.data[i+1]+imgData.data[i+2])/3;
-   let val=avg>120?255:0;
-   imgData.data[i]=imgData.data[i+1]=imgData.data[i+2]=val;
- }
- tCtx.putImageData(imgData,0,0);
- doOCR(tmp);
-};
-
-document.getElementById('pick').onclick=()=>document.getElementById('file').click();
-document.getElementById('file').onchange=e=>{
- const r=new FileReader(); r.onload=()=>doOCR(r.result); r.readAsDataURL(e.target.files[0]);
-};
-document.getElementById('copy').onclick=async()=>{
- if(!lastNum){ok.innerText="Scan kwanza"; return}
- await navigator.clipboard.writeText(lastNum);
- window.location.href="tel:*150*00*"+lastNum+"%23";
-};
-document.getElementById('futa').onclick=()=>{lastNum=""; numDiv.innerText="---- ---- ----"; ok.innerText=""}
-</script>
-</body>
-</html>
-
+ for(let i=
 
  
