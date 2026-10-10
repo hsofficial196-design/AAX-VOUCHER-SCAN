@@ -3,72 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AAX SCAN 5</title>
+<title>AAX FINAL YOTE</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXX" crossorigin="anonymous"></script>
 <style>
-body{margin:0;background:#0a0a0a;color:#fff;font-family:sans-serif;text-align:center;padding:8px}
-h1{color:#ffb700;margin:6px 0;font-size:18px}
-#box{border:3px solid #ffb700;border-radius:15px;overflow:hidden;position:relative;height:400px;background:#000}
+body{margin:0;background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:8px}
+h1{color:#ffb700;margin:6px 0}
+.ad{background:#111;border:1px dashed #444;border-radius:10px;margin:8px 0;min-height:85px;display:flex;align-items:center;justify-content:center}
+#box{border:3px solid #ffb700;border-radius:16px;overflow:hidden;position:relative;height:390px;background:#000}
 video{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
-#focus{position:absolute;top:5%;left:3%;width:94%;height:90%;border:3px dashed #00ff6a;border-radius:12px;z-index:5}
-#ok{font-size:13px;font-weight:bold;min-height:18px;margin:6px 0}
-.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:900;font-size:16px;margin-top:6px}
+#focus{position:absolute;top:18%;left:5%;width:90%;height:60%;border:3px dashed #00ff6a;border-radius:12px;z-index:5}
+#num{font-size:22px;background:#1a1a1a;padding:15px;border-radius:12px;border:2px solid #ffb700;color:#ffb700;font-weight:900;margin:10px 0;word-break:break-all}
+#ok{font-weight:bold;min-height:20px;margin:5px 0}
+.btn{width:100%;padding:16px;border:none;border-radius:12px;font-weight:900;font-size:17px;margin-top:8px}
 #scan{background:#ffb700;color:#000}
-#futa{background:#222;color:#fff}
-.grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
-.card{background:#1a1a1a;border:2px solid #333;border-radius:10px;padding:10px;text-align:left}
-.card.ok{border-color:#00c853}
-.card b{color:#ffb700;font-size:15px;word-break:break-all}
+#dial{background:#00c853;color:#fff}
 </style>
 </head>
 <body>
-<h1>AAX - SCAN VOCHA 5 KWA MPIGO</h1>
+<div class="ad"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXX" data-ad-slot="1111111111" data-ad-format="auto"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>ADS JUU</div>
+<h1>AAX VOCHA - SCAN SAHIHI</h1>
 <div id="box"><video id="v" autoplay playsinline muted></video><div id="focus"></div></div>
-<button id="scan" class="btn">📷 SCAN VOCHA 5 KWA PAMOJA</button>
+<button id="scan" class="btn">📷 SCAN VOCHA</button>
 <div id="ok"></div>
-<div class="grid" id="grid"></div>
-<button id="futa" class="btn">FUTA ZOTE</button>
+<div id="num">*104* ---- #</div>
+<button id="dial" class="btn">📞 PIGA *104# SASA</button>
+<div class="ad" id="adMid" style="display:none"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXX" data-ad-slot="2222222222" data-ad-format="auto"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>ADS</div>
+<div class="ad"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXX" data-ad-slot="3333333333" data-ad-format="auto"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>ADS CHINI</div>
 <canvas id="c" style="display:none"></canvas>
 <script>
-const v=document.getElementById('v'), c=document.getElementById('c'), ctx=c.getContext('2d'), ok=document.getElementById('ok'), grid=document.getElementById('grid');
-let stream, worker=null;
-async function startCam(){try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1920},height:{ideal:1080}}}); v.srcObject=stream;}catch(e){ok.innerText="Ruhusu camera"}} startCam();
-async function getWorker(){if(worker) return worker; worker=await Tesseract.createWorker('eng'); await worker.setParameters({tessedit_char_whitelist:'0123456789 \n', tessedit_pageseg_mode:'6'}); return worker;}
-function extractAllNumbers(text){
-  // chukua namba zote 12-16
-  let all=text.match(/\d{12,16}/g)||[];
-  let raw=text.replace(/\D/g,' ');
-  // pia jaribu kugawa kwa nafasi
-  let parts=text.split(/[^0-9]+/).filter(s=>s.length>=12);
-  all=all.concat(parts);
-  // ond oa duplicates na SN 0325
-  let uniq=[...new Set(all)];
-  let filtered=uniq.filter(n=>!n.startsWith("0325") && n.length>=12 && n.length<=16).map(n=>n.slice(0,14));
-  // chukua 5 za kwanza tofauti
-  return [...new Set(filtered)].slice(0,5);
-}
+const v=document.getElementById('v'), c=document.getElementById('c'), ctx=c.getContext('2d'), ok=document.getElementById('ok'), numDiv=document.getElementById('num'), adMid=document.getElementById('adMid');
+let stream, worker=null, lastUSSD="", count=0;
+async function startCam(){stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1920}}}); v.srcObject=stream;} startCam();
+async function getWorker(){if(worker) return worker; worker=await Tesseract.createWorker('eng'); await worker.setParameters({tessedit_char_whitelist:'0123456789', tessedit_pageseg_mode:'7'}); return worker;}
+function getNum(t){let a=t.match(/\d{12,16}/g)||[]; if(!a.length){let d=t.replace(/\D/g,''); return d.length>=12?d.slice(0,14):"";} let f=a.filter(n=>!n.startsWith("0325")); let cands=f.length?f:a; cands.sort((x,y)=>y.length-x.length); return cands[0].slice(0,14);}
 document.getElementById('scan').onclick=async()=>{
- if(!stream) return; ok.style.color="#ffb700"; ok.innerText="⏳ Inasoma vocha 5...";
- const vw=v.videoWidth, vh=v.videoHeight;
- c.width=vw; c.height=vh; ctx.drawImage(v,0,0);
- // B&W
- let d=ctx.getImageData(0,0,c.width,c.height);
- for(let i=0;i<d.data.length;i+=4){let g=0.299*d.data[i]+0.587*d.data[i+1]+0.114*d.data[i+2]; let vv=g>130?255:0; d.data[i]=d.data[i+1]=d.data[i+2]=vv;}
- ctx.putImageData(d,0,0);
- // upscale x3 kwa usahihi wa 5
- let tmp=document.createElement('canvas'); tmp.width=c.width*3; tmp.height=c.height*3;
- tmp.getContext('2d').drawImage(c,0,0,tmp.width,tmp.height);
- const w=await getWorker();
- const {data:{text}}=await w.recognize(tmp);
- let nums=extractAllNumbers(text);
- if(nums.length==0){ok.style.color="#ff4444"; ok.innerText="Haijaona vocha - weka vocha 5 karibu na kila moja ionekane"; grid.innerHTML=""; return;}
- ok.style.color="#00ff6a"; ok.innerText="✓ Imeona vocha "+nums.length+" sahihi";
- grid.innerHTML=nums.map((n,i)=>{
-   let ussd="*104*"+n+"#";
-   return `<div class="card ok"><div><b>${i+1}. ${ussd}</b><br><small style="color:#aaa">${n}</small></div><div style="margin-top:8px;display:flex;gap:6px"><button onclick="window.location.href='tel:${encodeURIComponent(ussd)}'" style="flex:1;background:#00c853;color:#fff;border:none;padding:10px;border-radius:8px;font-weight:900">PIGA</button><button onclick="navigator.clipboard.writeText('${ussd}')" style="flex:1;background:#333;color:#fff;border:none;padding:10px;border-radius:8px">COPY</button></div></div>`;
- }).join('');
+ if(!stream) return; ok.style.color="#ffb700"; ok.innerText="⏳ Inasoma..."; numDiv.innerText="*104* ---- #";
+ const vw=v.videoWidth, vh=v.videoHeight; c.width=vw*0.9; c.height=vh*0.6; ctx.drawImage(v, vw*0.05, vh*0.15, vw*0.9, vh*0.6, 0,0, c.width, c.height);
+ let d=ctx.getImageData(0,0,c.width,c.height); for(let i=0;i<d.data.length;i+=4){let g=0.299*d.data[i]+0.587*d.data[i+1]+0.114*d.data[i+2]; let vv=g>125?255:0; d.data[i]=d.data[i+1]=d.data[i+2]=vv;} ctx.putImageData(d,0,0);
+ let tmp=document.createElement('canvas'); tmp.width=c.width*4; tmp.height=c.height*4; tmp.getContext('2d').drawImage(c,0,0,tmp.width,tmp.height);
+ const w=await getWorker(); const {data:{text}}=await w.recognize(tmp); let num=getNum(text);
+ if(num && num.length>=12){lastUSSD="*104*"+num+"#"; numDiv.innerText=lastUSSD; ok.style.color="#00ff6a"; ok.innerText="✓ Sahihi: "+num+" - Weka nyingine ukitaka"; count++; if(count>=2) adMid.style.display="flex";}
+ else{ok.style.color="#ff4444"; ok.innerText="Haijasoma - rudia ndani ya box";}
 };
-document.getElementById('futa').onclick=()=>{grid.innerHTML=""; ok.innerText="";};
+document.getElementById('dial').onclick=()=>{if(!lastUSSD){ok.innerText="Scan kwanza"; return;} window.location.href="tel:"+encodeURIComponent(lastUSSD);};
 </script>
 </body>
 </html>
